@@ -76,7 +76,23 @@ def do_prep(params: dict) -> None:
     subprocess.run(["open", str(target)], check=True)
 
 
-ACTIONS = {"open": do_open, "prep": do_prep}
+def do_folder(params: dict) -> None:
+    file_param = params.get("file", [None])[0]
+    if not file_param:
+        raise ValueError("Missing file= parameter")
+
+    folder = BASE / file_param
+    if not folder.exists():
+        folder.mkdir(parents=True, exist_ok=True)
+        logging.info("Created folder %s", folder)
+    elif not folder.is_dir():
+        raise NotADirectoryError(f"Not a directory: {folder.relative_to(BASE)}")
+
+    logging.info("Opening folder %s in Finder", folder)
+    subprocess.run(["open", str(folder)], check=True)
+
+
+ACTIONS = {"open": do_open, "prep": do_prep, "folder": do_folder}
 
 
 def main() -> None:
