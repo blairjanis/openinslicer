@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Open in OpenSCAD</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 30rem; margin: 4rem auto; padding: 0 1.25rem; color: #222; line-height: 1.5; }
+  h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+  p { margin: 0.5rem 0; }
+  code { background: #f3f3f3; padding: 0.1rem 0.3rem; border-radius: 4px; }
+  a.btn { display: inline-block; margin-top: 1rem; padding: 0.6rem 1rem; background: #0070f3; color: white; text-decoration: none; border-radius: 6px; font-weight: 500; }
+  .muted { color: #888; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<h1>Opening in OpenSCAD…</h1>
+<p id="status">If your browser blocks the redirect, click the button below.</p>
+<p><a id="link" class="btn" href="#">Open in OpenSCAD</a></p>
+<p class="muted" id="countdown" hidden></p>
+<p class="muted" id="empty" hidden>No <code>?file=</code> parameter provided.</p>
+<script>
+  const file = new URLSearchParams(location.search).get('file') || '';
+  if (!file) {
+    document.getElementById('empty').hidden = false;
+    document.getElementById('link').hidden = true;
+    document.getElementById('status').hidden = true;
+  } else {
+    const target = 'printqueue://prep?file=' + encodeURIComponent(file);
+    document.getElementById('link').href = target;
+    location.replace(target);
+
+    const countdown = document.getElementById('countdown');
+    countdown.hidden = false;
+    let secs = 30;
+    const tick = () => {
+      if (secs > 0) {
+        countdown.textContent = `This tab will try to close in ${secs}s.`;
+        secs -= 1;
+      } else {
+        clearInterval(timer);
+        window.close();
+        countdown.textContent = 'Safe to close this tab.';
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+  }
+</script>
+</body>
+</html>

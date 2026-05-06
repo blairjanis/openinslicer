@@ -1,6 +1,6 @@
 # PrintQueueBridge
 
-A macOS URL-scheme handler that opens 3MF files from Google Drive (Stream mode) directly in **PrusaSlicer or Bambu Studio**. Designed so a Trello card link opens the file with one click — no downloads, no copies. The slicer is chosen by which bridge URL the link points at.
+A macOS URL-scheme handler that opens 3MF files from Google Drive (Stream mode) directly in **PrusaSlicer or Bambu Studio**, and prepares per-card SCAD working directories on first click for **OpenSCAD**. Designed so a Trello card link opens the right thing in the right app with one click — no downloads, no manual file copying.
 
 ## Architecture
 
@@ -13,15 +13,18 @@ Files in this repo split into two groups. The Mac side installs locally; the web
 | `install.sh` | Copies the handler, compiles the AppleScript bundle, patches its `Info.plist` to declare the URL scheme, and re-registers it with LaunchServices. | (run in place) |
 | `prusa/index.html` | Bridge that hardcodes `app=prusa`. Page title is "Open in PrusaSlicer" so Trello uses that as the attachment label. | `/prusa/` on the static host |
 | `bambu/index.html` | Bridge that hardcodes `app=bambu`. Page title is "Open in Bambu Studio". | `/bambu/` on the static host |
+| `scad/index.html` | Bridge that triggers the `prep` action (folder/file create-on-first-click, then open with default app association — OpenSCAD). | `/scad/` on the static host |
 
 Bundle ID: `com.blairjanis.printqueuebridge`. The bundle has `LSUIElement=true` so it never shows in the Dock.
 
-End-to-end click path: Trello attachment (HTTPS) → browser loads the appropriate bridge page → JS redirects to `printqueue://open?file=X&app=Y` → LaunchServices hands off to `PrintQueueBridge.app` → AppleScript shells out to `handler.py` → `open -a <SlicerApp> <resolved path>`.
+End-to-end click path: Trello attachment (HTTPS) → browser loads the appropriate bridge page → JS redirects to `printqueue://<action>?file=X[&app=Y]` → LaunchServices hands off to `PrintQueueBridge.app` → AppleScript shells out to `handler.py` → `open` with or without `-a` depending on action.
 
 ## Configuration (in `handler.py`)
 
 - `BASE` — Google Drive root for printable files: `~/Library/CloudStorage/GoogleDrive-blairjanis@gmail.com/My Drive/Name Plates`
-- `DEFAULT_FILENAME` — `name plate.3mf`. If the URL's `file=` value is a directory (or doesn't end in `.3mf`), this is appended. Lets Trello cards link to a folder name and "just work."
+- `DEFAULT_FILENAME` — `name plate.3mf`. If the URL's `file=` value is a directory (or doesn't end in `.3mf`), this is appended for the `open` action. Lets Trello cards link to a folder name and "just work."
+- `SCAD_FILENAME` — `name plate.scad`. Used by the `prep` action both as the template name (looked up at `BASE/<SCAD_FILENAME>`) and as the per-card filename inside the new card folder.
+- `SCAD_TEMPLATE` — `BASE / SCAD_FILENAME`. The shared template that gets copied into each card's folder on first `prep`.
 - `APPS` — short-key → macOS app name. Currently `{"prusa": "PrusaSlicer", "bambu": "BambuStudio"}`. Add a new slicer here (key + bundle name as it appears to `open -a`) to support it.
 - `DEFAULT_APP` — used when the URL has no `app=` param. Currently `"prusa"`.
 - `LOG_PATH` — `~/Library/Application Support/PrintQueueBridge/handler.log`
@@ -30,14 +33,20 @@ If you change any of the above, re-run `./install.sh` to push the new `handler.p
 
 ## URL format
 
+Two actions, distinguished by the URL host:
+
 ```
 printqueue://open?file=<path-relative-to-BASE>[&app=<prusa|bambu>]
+printqueue://prep?file=<card-folder-name>
 ```
 
-Examples:
+**`open`** — locate an existing 3MF and launch it in a slicer.
 - `printqueue://open?file=Acme%20Corp` → opens `…/Name Plates/Acme Corp/name plate.3mf` in PrusaSlicer (default)
 - `printqueue://open?file=Acme%20Corp&app=bambu` → same file in Bambu Studio
 - `printqueue://open?file=Acme%20Corp/lid.3mf` → opens that specific file
+
+**`prep`** — set up a card's working directory and open the SCAD file (creates folder + copies the template `.scad` from `SCAD_TEMPLATE` if missing, then `open` with no `-a` so macOS file association picks OpenSCAD).
+- `printqueue://prep?file=Acme%20Corp` → ensures `…/Name Plates/Acme Corp/` exists with a `name plate.scad` inside, then opens it.
 
 URL-encode spaces as `%20`. Don't put `printqueue://` URLs in Trello directly — Trello rejects custom schemes. Use the web bridge instead (next section).
 
@@ -45,17 +54,19 @@ URL-encode spaces as `%20`. Don't put `printqueue://` URLs in Trello directly �
 
 Trello rejects custom URL schemes — neither manual link attachments nor Butler will accept `printqueue://...`. The workaround is a tiny static HTML page hosted over HTTPS that reads `?file=X` from its query string and immediately redirects the browser to `printqueue://open?file=X&app=Y`. Trello sees a normal HTTPS URL and is happy; the browser handles the scheme jump.
 
-There are two bridge pages, one per slicer, both near-identical:
+There are three bridge pages, all near-identical:
 
-- `prusa/index.html` — title "Open in PrusaSlicer", redirects with `app=prusa`.
-- `bambu/index.html` — title "Open in Bambu Studio", redirects with `app=bambu`.
+- `prusa/index.html` — title "Open in PrusaSlicer", redirects with `printqueue://open?file=…&app=prusa`.
+- `bambu/index.html` — title "Open in Bambu Studio", redirects with `printqueue://open?file=…&app=bambu`.
+- `scad/index.html` — title "Open in OpenSCAD", redirects with `printqueue://prep?file=…` (different action, no `app=`).
 
-Why two files instead of one with a `?app=` param? **Butler doesn't let you set the link attachment's display text** — it inherits the page `<title>` instead. Separate files mean each Trello attachment gets a self-explanatory label automatically.
+Why separate files instead of one with a `?app=` param? **Butler doesn't let you set the link attachment's display text** — it inherits the page `<title>` instead. Separate files mean each Trello attachment gets a self-explanatory label automatically.
 
 **Hosting (GitHub Pages):** repo is at `https://github.com/blairjanis/openinslicer`, deploying from `main` branch root. Bridge URLs:
 
 - `https://blairjanis.github.io/openinslicer/prusa/` — PrusaSlicer
 - `https://blairjanis.github.io/openinslicer/bambu/` — Bambu Studio
+- `https://blairjanis.github.io/openinslicer/scad/` — OpenSCAD (creates the folder + template on first click)
 
 **Updating the bridge:** edit the HTML file(s), commit and push, GitHub Pages redeploys in ~1 minute. No `install.sh` rerun needed since the bridge is web-hosted, not part of the local app.
 
@@ -63,14 +74,25 @@ Why two files instead of one with a `?app=` param? **Butler doesn't let you set 
 
 With the bridges hosted, Butler's **Create link** action (under **Add/Remove**) can attach an HTTPS URL that points at the appropriate bridge with `{cardname}` substituted in. The user clicks the attachment → bridge loads → browser redirects to `printqueue://...` → handler opens the chosen slicer.
 
-Two URLs to use:
+URLs to use:
 
-| Slicer | URL pattern |
+| Action | URL pattern |
 |---|---|
-| PrusaSlicer | `https://blairjanis.github.io/openinslicer/prusa/?file={cardname}` |
-| Bambu Studio | `https://blairjanis.github.io/openinslicer/bambu/?file={cardname}` |
+| Open in PrusaSlicer | `https://blairjanis.github.io/openinslicer/prusa/?file={cardname}` |
+| Open in Bambu Studio | `https://blairjanis.github.io/openinslicer/bambu/?file={cardname}` |
+| Prep + open in OpenSCAD | `https://blairjanis.github.io/openinslicer/scad/?file={cardname}` |
 
-`{cardname}` is a Butler variable — it substitutes the card title and URL-encodes spaces automatically. The `Name` field in the Create link action doesn't matter — Butler ignores it and uses the bridge page's `<title>` ("Open in PrusaSlicer" or "Open in Bambu Studio") as the attachment label.
+`{cardname}` is a Butler variable — it substitutes the card title and URL-encodes spaces automatically. The `Name` field in the Create link action doesn't matter — Butler ignores it and uses the bridge page's `<title>` as the attachment label.
+
+**Suggested list-based wiring:**
+
+| List | On entry, attach link(s) | On exit, remove |
+|---|---|---|
+| Requested | (none) | (none) |
+| In Process | OpenSCAD | OpenSCAD |
+| Print Queue (or whichever list precedes printing) | PrusaSlicer + Bambu Studio | PrusaSlicer + Bambu Studio |
+
+The cleanup-on-exit pairing keeps each list's slot of attachments tidy and avoids duplicates on re-entry (see "Cleanup rule" below).
 
 ### Option A — Rule on card creation (recommended)
 
