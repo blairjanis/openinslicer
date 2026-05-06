@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Print Queue Bridge</title>
+<title>Open in PrusaSlicer</title>
 <style>
   body { font-family: -apple-system, system-ui, sans-serif; max-width: 30rem; margin: 4rem auto; padding: 0 1.25rem; color: #222; line-height: 1.5; }
   h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
@@ -17,6 +17,7 @@
 <h1>Opening in PrusaSlicer…</h1>
 <p id="status">If your browser blocks the redirect, click the button below.</p>
 <p><a id="link" class="btn" href="#">Open in PrusaSlicer</a></p>
+<p class="muted" id="countdown" hidden></p>
 <p class="muted" id="empty" hidden>No <code>?file=</code> parameter provided.</p>
 <script>
   const file = new URLSearchParams(location.search).get('file') || '';
@@ -28,6 +29,22 @@
     const target = 'printqueue://open?file=' + encodeURIComponent(file);
     document.getElementById('link').href = target;
     location.replace(target);
+
+    const countdown = document.getElementById('countdown');
+    countdown.hidden = false;
+    let secs = 30;
+    const tick = () => {
+      if (secs > 0) {
+        countdown.textContent = `This tab will try to close in ${secs}s.`;
+        secs -= 1;
+      } else {
+        clearInterval(timer);
+        window.close();
+        countdown.textContent = 'Safe to close this tab.';
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
   }
 </script>
 </body>
