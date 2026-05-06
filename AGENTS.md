@@ -81,15 +81,16 @@ URLs to use:
 | Open in PrusaSlicer | `https://blairjanis.github.io/openinslicer/prusa/?file={cardname}` |
 | Open in Bambu Studio | `https://blairjanis.github.io/openinslicer/bambu/?file={cardname}` |
 | Prep + open in OpenSCAD | `https://blairjanis.github.io/openinslicer/scad/?file={cardname}` |
+| Drive search for the card folder | `https://drive.google.com/drive/search?q={cardname}` |
 
-`{cardname}` is a Butler variable — it substitutes the card title and URL-encodes spaces automatically. The `Name` field in the Create link action doesn't matter — Butler ignores it and uses the bridge page's `<title>` as the attachment label.
+`{cardname}` is a Butler variable — it substitutes the card title and URL-encodes spaces automatically. The `Name` field in the Create link action doesn't matter — Butler ignores it and uses the bridge page's `<title>` as the attachment label. (For the Drive search URL, the label comes from Drive's page title — typically "Search results - Google Drive" — so rename that one in Trello if you want a friendlier label.)
 
 **Suggested list-based wiring:**
 
 | List | On entry, attach link(s) | On exit, remove |
 |---|---|---|
 | Requested | (none) | (none) |
-| In Process | OpenSCAD | OpenSCAD |
+| In Process | OpenSCAD + Drive search | OpenSCAD + Drive search |
 | Print Queue (or whichever list precedes printing) | PrusaSlicer + Bambu Studio | PrusaSlicer + Bambu Studio |
 
 The cleanup-on-exit pairing keeps each list's slot of attachments tidy and avoids duplicates on re-entry (see "Cleanup rule" below).
