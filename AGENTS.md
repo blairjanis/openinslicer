@@ -11,7 +11,6 @@ Files in this repo split into two groups. The Mac side installs locally; the web
 | `handler.py` | Parses the URL, resolves the path under the Google Drive base, opens it in the chosen slicer, logs errors, shows Mac notifications on failure. | `~/Library/Application Support/PrintQueueBridge/handler.py` |
 | `handler.applescript` | Tiny `on open location` shim that hands the URL to `handler.py`. Compiled to a `.app` bundle so LaunchServices can register it as the owner of the `printqueue://` scheme. | `/Applications/PrintQueueBridge.app` |
 | `install.sh` | Copies the handler, compiles the AppleScript bundle, patches its `Info.plist` to declare the URL scheme, and re-registers it with LaunchServices. | (run in place) |
-| `index.html` | Default bridge page (no `app` param → defaults to PrusaSlicer). Kept for backward compat. | static host root |
 | `prusa/index.html` | Bridge that hardcodes `app=prusa`. Page title is "Open in PrusaSlicer" so Trello uses that as the attachment label. | `/prusa/` on the static host |
 | `bambu/index.html` | Bridge that hardcodes `app=bambu`. Page title is "Open in Bambu Studio". | `/bambu/` on the static host |
 
@@ -46,18 +45,16 @@ URL-encode spaces as `%20`. Don't put `printqueue://` URLs in Trello directly �
 
 Trello rejects custom URL schemes — neither manual link attachments nor Butler will accept `printqueue://...`. The workaround is a tiny static HTML page hosted over HTTPS that reads `?file=X` from its query string and immediately redirects the browser to `printqueue://open?file=X&app=Y`. Trello sees a normal HTTPS URL and is happy; the browser handles the scheme jump.
 
-There are three bridge pages, all near-identical:
+There are two bridge pages, one per slicer, both near-identical:
 
-- `index.html` (root) — defaults to PrusaSlicer. Kept for backward compat with any pre-existing links.
 - `prusa/index.html` — title "Open in PrusaSlicer", redirects with `app=prusa`.
 - `bambu/index.html` — title "Open in Bambu Studio", redirects with `app=bambu`.
 
-Why three files instead of one with a `?app=` param? **Butler doesn't let you set the link attachment's display text** — it inherits the page `<title>` instead. Separate files mean each Trello attachment gets a self-explanatory label automatically.
+Why two files instead of one with a `?app=` param? **Butler doesn't let you set the link attachment's display text** — it inherits the page `<title>` instead. Separate files mean each Trello attachment gets a self-explanatory label automatically.
 
 **Hosting (GitHub Pages):** repo is at `https://github.com/blairjanis/openinslicer`, deploying from `main` branch root. Bridge URLs:
 
-- `https://blairjanis.github.io/openinslicer/` — defaults to PrusaSlicer
-- `https://blairjanis.github.io/openinslicer/prusa/` — explicit PrusaSlicer
+- `https://blairjanis.github.io/openinslicer/prusa/` — PrusaSlicer
 - `https://blairjanis.github.io/openinslicer/bambu/` — Bambu Studio
 
 **Updating the bridge:** edit the HTML file(s), commit and push, GitHub Pages redeploys in ~1 minute. No `install.sh` rerun needed since the bridge is web-hosted, not part of the local app.
