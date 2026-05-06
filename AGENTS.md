@@ -164,6 +164,7 @@ Use this if LaunchServices gets confused about who owns the `printqueue://` sche
 - **Notification says "Missing file= parameter"** — the URL is malformed. Must be `printqueue://open?file=…`.
 - **Notification says "Unknown app: …"** — the `app=` value isn't in `APPS` in `handler.py`. Check spelling or add a new entry to `APPS` and re-run `./install.sh`.
 - **Slicer doesn't launch** — confirm `open -a PrusaSlicer` (or `open -a BambuStudio`) works manually. The handler shells out to that. If `open -a` errors with "no application found," LaunchServices doesn't know about the app — open it once from Finder and try again.
+- **`prep` action fails with `PermissionError: Operation not permitted`** — macOS TCC is blocking `PrintQueueBridge.app` from reading Google Drive directly. The slicer (`open`) action sidesteps this because the slicer apps have their own Drive permission, but `prep` reads/writes bytes from the handler itself. Fix: System Settings → Privacy & Security → **Full Disk Access** → `+` → `/Applications/PrintQueueBridge.app` → toggle on. (The narrower **Files and Folders → Google Drive** entry sometimes doesn't appear for AppleScript-bundled apps, hence the recommendation to use Full Disk Access.)
 - **No notifications appear at all** — check System Settings → Notifications and allow notifications for "PrintQueueBridge" (or for Script Editor, depending on macOS version).
 - **Logs — first place to look when something doesn't work:**
   ```bash
