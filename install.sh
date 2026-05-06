@@ -28,7 +28,8 @@ $PB -c "Add :CFBundleURLTypes:0 dict" "$INFO"
 $PB -c "Add :CFBundleURLTypes:0:CFBundleURLName string $BUNDLE_ID" "$INFO"
 $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$INFO"
 $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string printqueue" "$INFO"
-$PB -c "Set :CFBundleIdentifier $BUNDLE_ID" "$INFO"
+$PB -c "Add :CFBundleIdentifier string $BUNDLE_ID" "$INFO" 2>/dev/null || \
+    $PB -c "Set :CFBundleIdentifier $BUNDLE_ID" "$INFO"
 $PB -c "Add :LSUIElement bool true" "$INFO" 2>/dev/null || \
     $PB -c "Set :LSUIElement true" "$INFO"
 

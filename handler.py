@@ -9,6 +9,8 @@ from pathlib import Path
 
 BASE = Path.home() / "Library/CloudStorage/GoogleDrive-blairjanis@gmail.com/My Drive/Name Plates"
 DEFAULT_FILENAME = "name plate.3mf"
+APPS = {"prusa": "PrusaSlicer", "bambu": "BambuStudio"}
+DEFAULT_APP = "prusa"
 SUPPORT_DIR = Path.home() / "Library/Application Support/PrintQueueBridge"
 LOG_PATH = SUPPORT_DIR / "handler.log"
 
@@ -55,9 +57,14 @@ def main() -> None:
         if not file_param:
             raise ValueError("Missing file= parameter")
 
+        app_param = params.get("app", [DEFAULT_APP])[0]
+        app_name = APPS.get(app_param)
+        if not app_name:
+            raise ValueError(f"Unknown app: {app_param!r} (known: {', '.join(APPS)})")
+
         target = resolve(file_param)
-        logging.info("Opening: %s", target)
-        subprocess.run(["open", "-a", "PrusaSlicer", str(target)], check=True)
+        logging.info("Opening %s with %s", target, app_name)
+        subprocess.run(["open", "-a", app_name, str(target)], check=True)
     except Exception as exc:
         logging.exception("Failed to handle URL")
         notify(str(exc))
