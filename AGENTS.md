@@ -91,6 +91,15 @@ The rule above only fires on *new* cards. For existing cards, define one card bu
 3. **Add Action** → **Add/Remove** → **Create link**, with the matching bridge URL.
 4. Save. Repeat for the other slicer.
 
+### Cleanup rule (prevents duplicate links on re-entry)
+
+The "added to list" trigger fires every time a card enters — including when it's moved out and back. Without a cleanup rule, you'd end up with stacked duplicate attachments after a few back-and-forths. The pattern in use:
+
+- **Add rule:** *when a card is added to list X* → create the slicer link(s).
+- **Remove rule:** *when a card is moved out of list X* → remove the slicer link(s) (Butler has a matching **Remove link** action under Add/Remove).
+
+Net effect: links exist exactly when the card is in the print-queue list, and re-entry produces fresh links instead of duplicates. This also matches the intent — the slicer shortcuts are only useful while the card is queued for printing.
+
 ### First-click flow
 
 When you click the link attachment on a card, Trello opens the URL via your browser. The browser prompts something like *"Open PrintQueueBridge?"* — confirm, and (if offered) check **Always allow** so future clicks skip the prompt.
